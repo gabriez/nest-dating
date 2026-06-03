@@ -1,34 +1,70 @@
-import { Controller, Get, Post, Body, Param, Query, Put } from '@nestjs/common';
-import { CreateProfileDto } from './dto/createProfile.dto'
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  Put,
+  HttpCode,
+  Delete,
+  HttpStatus,
+  NotFoundException,
+  ParseUUIDPipe,
+} from '@nestjs/common';
+import { CreateProfileDto } from './dto/createProfile.dto';
+import { ProfilesService } from './profiles.service';
+import { UpdateProfileDto } from './dto/updateProfile.dto';
+import type { UUID } from 'crypto';
 
 @Controller('profiles')
 export class ProfilesController {
-    @Get()
-    findAll(@Query('location') location: string) {
-        return { location };
+  constructor(private profilesService: ProfilesService) {}
+
+  @Get()
+  findAll(@Query('location') location: string) {
+    return this.profilesService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id', ParseUUIDPipe) id: UUID) {
+    const profile = this.profilesService.findOne(id);
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+    return profile;
+  }
+
+  @Post()
+  create(@Body() createProfileDto: CreateProfileDto) {
+    const profile = this.profilesService.create(createProfileDto);
+
+    return profile;
+  }
+
+  @Put(':id')
+  update(
+    @Param('id', ParseUUIDPipe) id: UUID,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    const profile = this.profilesService.update(id, updateProfileDto);
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
     }
 
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return { id }
+    return profile;
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  delete(@Param('id', ParseUUIDPipe) id: UUID) {
+    const deleted = this.profilesService.delete(id);
+
+    if (!deleted) {
+      throw new NotFoundException('Profile not found');
     }
 
-    @Post()
-    create(@Body() createProfileDto: CreateProfileDto) {
-        return {
-            name: createProfileDto.name,
-            description: createProfileDto.description
-        }
-    }
-
-    @Put(':id')
-    update(@Param('id') id: string, @Body() updateProfileDto: CreateProfileDto) {
-
-        return {
-            id,
-            name: updateProfileDto.name,
-            description: updateProfileDto.description
-        }
-     }
-
+    return { message: 'Profile deleted successfully' };
+  }
 }
